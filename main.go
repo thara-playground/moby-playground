@@ -13,7 +13,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	cli, err := newDockerClient()
+	cli, err := client.New(client.FromEnv)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create docker client: %v\n", err)
 		os.Exit(1)
@@ -39,10 +39,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "networks: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func newDockerClient() (*client.Client, error) {
-	return client.New(client.FromEnv)
 }
 
 func showDaemonInfo(ctx context.Context, cli *client.Client) error {
