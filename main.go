@@ -20,25 +20,26 @@ func main() {
 	}
 	defer cli.Close()
 
+	if err := run(ctx, cli); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, cli *client.Client) error {
 	if err := showDaemonInfo(ctx, cli); err != nil {
-		fmt.Fprintf(os.Stderr, "daemon info: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("daemon info: %w", err)
 	}
-
 	if err := showComposeContainers(ctx, cli); err != nil {
-		fmt.Fprintf(os.Stderr, "compose containers: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("compose containers: %w", err)
 	}
-
 	if err := showImages(ctx, cli); err != nil {
-		fmt.Fprintf(os.Stderr, "images: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("images: %w", err)
 	}
-
 	if err := showNetworks(ctx, cli); err != nil {
-		fmt.Fprintf(os.Stderr, "networks: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("networks: %w", err)
 	}
+	return nil
 }
 
 func showDaemonInfo(ctx context.Context, cli *client.Client) error {
