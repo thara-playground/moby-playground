@@ -1,0 +1,37 @@
+name: moby-playground
+
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    labels:
+      app.role: frontend
+      app.description: "Web frontend serving static content"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    labels:
+      app.role: cache
+      app.description: "In-memory cache store"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  worker:
+    image: alpine:3.19
+    command: ["sh", "-c", "while true; do echo worker alive; sleep 30; done"]
+    labels:
+      app.role: worker
+      app.description: "Background worker process"
