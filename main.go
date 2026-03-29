@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
 
+	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
 
@@ -123,6 +125,39 @@ func showComposeContainers(ctx context.Context, cli *client.Client) error {
 			fmt.Printf("  Labels:\n")
 			for _, kv := range appLabels {
 				fmt.Printf("    %s = %s\n", kv[0], kv[1])
+			}
+		}
+
+		if c.State == "running" {
+			statsResult, err := cli.ContainerStats(ctx, c.ID, client.ContainerStatsOptions{
+				IncludePreviousSample: true,
+			})
+			if err != nil {
+				fmt.Printf("  CPU:    (stats failed: %v)\n", err)
+			} else {
+				var stats container.StatsResponse
+				if err := json.NewDecoder(statsResult.Body).Decode(&stats); err != nil {
+					fmt.Printf("  CPU:    (decode failed: %v)\n", err)
+				} else {
+					cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
+					systemDelta := float64(stats.CPUStats.SystemUsage - stats.PreCPUStats.SystemUsage)
+					cpuPercent := 0.0
+					if systemDelta > 0 && cpuDelta > 0 {
+						cpuPercent = (cpuDelta / systemDelta) * float64(stats.CPUStats.OnlineCPUs) * 100.0
+					}
+
+					memUsage := float64(stats.MemoryStats.Usage)
+					memLimit := float64(stats.MemoryStats.Limit)
+					memPercent := 0.0
+					if memLimit > 0 {
+						memPercent = (memUsage / memLimit) * 100.0
+					}
+
+					fmt.Printf("  CPU:    %.2f%%\n", cpuPercent)
+					fmt.Printf("  Memory: %.1f MiB / %.1f GiB (%.2f%%)\n",
+						memUsage/1024/1024, memLimit/1024/1024/1024, memPercent)
+				}
+				statsResult.Body.Close()
 			}
 		}
 		fmt.Println()
